@@ -522,51 +522,33 @@ def object_pairs_hook(
 
 
 def object_hook(dct: Mapping[str, Any], json_options: JSONOptions = DEFAULT_JSON_OPTIONS) -> Any:
-    if "$oid" in dct:
-        return _parse_canonical_oid(dct)
+    keys = _PARSERS.keys() & dct.keys()
+    if keys:
+        return _PARSERS[keys.pop()](dct)
+
+    keys_option = _PARSERS_JSON_OPTION.keys() & dct.keys()
+    if keys:
+        return _PARSERS_JSON_OPTION[keys_option.pop()](dct, json_options)
+
     if (
         isinstance(dct.get("$ref"), str)
         and "$id" in dct
         and isinstance(dct.get("$db"), (str, type(None)))
     ):
         return _parse_canonical_dbref(dct)
-    if "$date" in dct:
-        return _parse_canonical_datetime(dct, json_options)
-    if "$regex" in dct:
-        return _parse_legacy_regex(dct)
-    if "$minKey" in dct:
-        return _parse_canonical_minkey(dct)
-    if "$maxKey" in dct:
-        return _parse_canonical_maxkey(dct)
-    if "$binary" in dct:
-        if "$type" in dct:
-            return _parse_legacy_binary(dct, json_options)
-        else:
-            return _parse_canonical_binary(dct, json_options)
-    if "$code" in dct:
-        return _parse_canonical_code(dct)
-    if "$uuid" in dct:
-        return _parse_legacy_uuid(dct, json_options)
-    if "$undefined" in dct:
-        return None
-    if "$numberLong" in dct:
-        return _parse_canonical_int64(dct)
-    if "$timestamp" in dct:
-        tsp = dct["$timestamp"]
-        return Timestamp(tsp["t"], tsp["i"])
-    if "$numberDecimal" in dct:
-        return _parse_canonical_decimal128(dct)
-    if "$dbPointer" in dct:
-        return _parse_canonical_dbpointer(dct)
-    if "$regularExpression" in dct:
-        return _parse_canonical_regex(dct)
-    if "$symbol" in dct:
-        return _parse_canonical_symbol(dct)
-    if "$numberInt" in dct:
-        return _parse_canonical_int32(dct)
-    if "$numberDouble" in dct:
-        return _parse_canonical_double(dct)
     return dct
+
+
+def _parse_binary(doc: Any, json_options: JSONOptions) -> Union[Binary, uuid.UUID]:
+    if "$type" in doc:
+        return _parse_legacy_binary(doc, json_options)
+    else:
+        return _parse_canonical_binary(doc, json_options)
+
+
+def _parser_timestamp(doc: Any) -> Timestamp:
+    tsp = doc["$timestamp"]
+    return Timestamp(tsp["t"], tsp["i"])
 
 
 def _parse_legacy_regex(doc: Any) -> Any:
@@ -823,6 +805,31 @@ def _parse_canonical_maxkey(doc: Any) -> MaxKey:
     if len(doc) != 1:
         raise TypeError(f"Bad $minKey, extra field(s): {doc}")
     return MaxKey()
+
+
+_PARSERS: dict[str, Callable[[Any], Any]] = {
+    "$oid": _parse_canonical_oid,
+    "$regex": _parse_legacy_regex,
+    "$minKey": _parse_canonical_minkey,
+    "$maxKey": _parse_canonical_maxkey,
+    "$code": _parse_canonical_code,
+    "$undefined": lambda _: None,
+    "$numberLong": _parse_canonical_int64,
+    "$numberDecimal": _parse_canonical_decimal128,
+    "$dbPointer": _parse_canonical_dbpointer,
+    "$regularExpression": _parse_canonical_regex,
+    "$symbol": _parse_canonical_symbol,
+    "$numberInt": _parse_canonical_int32,
+    "$numberDouble": _parse_canonical_double,
+    "$timestamp": _parser_timestamp,
+}
+
+
+_PARSERS_JSON_OPTION: dict[str, Callable[[Any, JSONOptions], Any]] = {
+    "$date": _parse_canonical_datetime,
+    "$binary": _parse_binary,
+    "$$uuid": _parse_legacy_uuid,
+}
 
 
 def _encode_binary(data: bytes, subtype: int, json_options: JSONOptions) -> Any:
