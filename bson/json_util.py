@@ -522,11 +522,12 @@ def object_pairs_hook(
 
 
 def object_hook(dct: Mapping[str, Any], json_options: JSONOptions = DEFAULT_JSON_OPTIONS) -> Any:
-    keys = _PARSERS.keys() & dct.keys()
+    keys_dict = set(dct.keys())
+    keys = keys_dict.intersection(_PARSERS_KEYS)
     if keys:
         return _PARSERS[keys.pop()](dct)
 
-    keys_option = _PARSERS_JSON_OPTION.keys() & dct.keys()
+    keys_option = keys_dict.intersection(_PARSERS_JSON_OPTION_KEYS)
     if keys:
         return _PARSERS_JSON_OPTION[keys_option.pop()](dct, json_options)
 
@@ -824,12 +825,17 @@ _PARSERS: dict[str, Callable[[Any], Any]] = {
     "$timestamp": _parser_timestamp,
 }
 
+_PARSERS_KEYS: set[str] = {i for i in _PARSERS}  # noqa: C416
+
 
 _PARSERS_JSON_OPTION: dict[str, Callable[[Any, JSONOptions], Any]] = {
     "$date": _parse_canonical_datetime,
     "$binary": _parse_binary,
     "$$uuid": _parse_legacy_uuid,
 }
+
+
+_PARSERS_JSON_OPTION_KEYS: set[str] = {i for i in _PARSERS_JSON_OPTION}  # noqa: C416
 
 
 def _encode_binary(data: bytes, subtype: int, json_options: JSONOptions) -> Any:
