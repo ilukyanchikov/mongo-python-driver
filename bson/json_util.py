@@ -825,14 +825,15 @@ _PARSERS: dict[str, Callable[[Any], Any]] = {
     "$timestamp": _parser_timestamp,
 }
 
-_PARSERS_KEYS: set[str] = {i for i in _PARSERS}  # noqa: C416
-
 
 _PARSERS_JSON_OPTION: dict[str, Callable[[Any, JSONOptions], Any]] = {
     "$date": _parse_canonical_datetime,
     "$binary": _parse_binary,
-    "$$uuid": _parse_legacy_uuid,
+    "$uuid": _parse_legacy_uuid,
 }
+
+
+_PARSERS_KEYS: set[str] = {i for i in _PARSERS}  # noqa: C416
 
 
 _PARSERS_JSON_OPTION_KEYS: set[str] = {i for i in _PARSERS_JSON_OPTION}  # noqa: C416
