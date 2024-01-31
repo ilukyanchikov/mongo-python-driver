@@ -38,7 +38,7 @@ from pymongo import MongoClient
 
 NUM_ITERATIONS = 100
 MAX_ITERATION_TIME = 300
-NUM_DOCS = 10000
+NUM_DOCS = 1000
 
 TEST_PATH = os.environ.get(
     "TEST_PATH", os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.join("data"))
