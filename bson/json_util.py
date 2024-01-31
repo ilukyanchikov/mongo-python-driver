@@ -103,7 +103,11 @@ from __future__ import annotations
 
 import base64
 import datetime
-import json
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import math
 import re
 import uuid
